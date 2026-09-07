@@ -1,0 +1,100 @@
+substitutions:
+  name: valve-controller-demo
+  friendly_name: Valve Controller Demo
+  open_pin: GPIO12
+  close_pin: GPIO13
+  open_button_pin: GPIO14
+  close_button_pin: GPIO15
+  current_update_interval: 20ms
+  current_threshold_amps: 0.05
+  movement_timeout: 30s
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+
+external_components:
+  - source:
+      type: local
+      path: ./custom_components
+
+esp32:
+  board: esp32dev
+  framework:
+    type: arduino
+
+logger:
+api:
+ota:
+
+i2c:
+  sda: GPIO21
+  scl: GPIO22
+  scan: true
+
+sensor:
+  - platform: ina219
+    id: valve_current
+    current:
+      name: ${friendly_name} Current
+    update_interval: ${current_update_interval}
+
+output:
+  - platform: gpio
+    id: valve_open_output
+    pin: ${open_pin}
+
+  - platform: gpio
+    id: valve_close_output
+    pin: ${close_pin}
+
+valve_controller:
+  id: garden_valve
+  open_output: valve_open_output
+  close_output: valve_close_output
+  current_sensor: valve_current
+  current_threshold: ${current_threshold_amps}
+  movement_timeout: ${movement_timeout}
+  state:
+    name: ${friendly_name} State
+  open_button:
+    id: open_valve_button
+    name: Open ${friendly_name}
+  close_button:
+    id: close_valve_button
+    name: Close ${friendly_name}
+
+binary_sensor:
+  - platform: gpio
+    id: open_valve_trigger
+    name: Open ${friendly_name} Trigger
+    internal: true
+    pin:
+      number: ${open_button_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+    on_press:
+      then:
+        - button.press: open_valve_button
+
+  - platform: gpio
+    id: close_valve_trigger
+    name: Close ${friendly_name} Trigger
+    internal: true
+    pin:
+      number: ${close_button_pin}
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+    filters:
+      - delayed_on: 20ms
+      - delayed_off: 20ms
+    on_press:
+      then:
+        - button.press: close_valve_button
