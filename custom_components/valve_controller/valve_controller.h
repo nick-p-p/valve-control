@@ -83,7 +83,7 @@ class ValveController final : public Component {
   bool current_above_threshold_() const;
   void start_opening_();
   void start_closing_();
-  void set_error_();
+  void set_error_(const char *reason);
   void complete_startup_();
   void process_startup_();
   void process_motion_();
@@ -99,6 +99,7 @@ class ValveController final : public Component {
   uint32_t stage_started_at_{0};
   bool startup_open_current_{false};
   bool startup_close_current_{false};
+  bool motion_current_check_pending_{false};
 
   float current_threshold_amps_{0.05f};
   uint32_t movement_timeout_ms_{30000};

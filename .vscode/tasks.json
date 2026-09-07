@@ -1,0 +1,19 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "ESPHome: Compile Valve Controller",
+			"type": "shell",
+			"command": "python",
+			"args": [
+				"-m",
+				"esphome",
+				"compile",
+				"valve_controller_example.yaml"
+			],
+			"isBackground": false,
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}

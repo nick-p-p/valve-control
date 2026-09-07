@@ -1,6 +1,8 @@
 # Valve Controller External Component
 
-This ESPHome external component controls a water valve with two independent GPIO outputs and an INA219 current sensor.
+This ESPHome external component controls a "3 wire" water valve with two independent GPIO outputs and an INA219 current sensor to detect when the motor is moving. This is compatible with the 3 wire valves from US solid that have individual wires for open adn close that only draw current when the valve is moving. This is essential as it is the drop in current that allows this addon to determine the motor has reached the desired position.
+
+These valves draw far more current than an esp32 can handle so mosfets or relays are needed. The INA219 should be wired so that current for the motor flows through it; only for the motor. 
 
 It exposes:
 

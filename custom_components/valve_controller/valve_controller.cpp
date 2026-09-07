@@ -123,6 +123,7 @@ bool ValveController::current_above_threshold_() const {
 
 void ValveController::start_opening_() {
   this->motion_started_at_ = millis();
+  this->motion_current_check_pending_ = true;
   this->set_close_output_(false);
   this->set_open_output_(true);
   this->set_state_(ValveState::OPENING);
@@ -130,12 +131,14 @@ void ValveController::start_opening_() {
 
 void ValveController::start_closing_() {
   this->motion_started_at_ = millis();
+  this->motion_current_check_pending_ = true;
   this->set_open_output_(false);
   this->set_close_output_(true);
   this->set_state_(ValveState::CLOSING);
 }
 
-void ValveController::set_error_() {
+void ValveController::set_error_(const char *reason) {
+  ESP_LOGE(TAG, "Valve state changed to error: %s", reason);
   this->all_outputs_off_();
   this->set_state_(ValveState::ERROR);
 }
@@ -144,7 +147,11 @@ void ValveController::complete_startup_() {
   this->startup_stage_ = StartupStage::DONE;
 
   if (this->startup_open_current_ == this->startup_close_current_) {
-    this->set_error_();
+    if (this->startup_open_current_) {
+      this->set_error_("startup position detection saw current in both tests");
+    } else {
+      this->set_error_("startup position detection saw no current in either test");
+    }
     return;
   }
 
@@ -221,6 +228,15 @@ void ValveController::process_motion_() {
   const uint32_t now = millis();
 
   if (this->state_ == ValveState::OPENING) {
+    if (this->motion_current_check_pending_) {
+      if (!this->current_above_threshold_()) {
+        this->set_error_("opening current was not detected within one loop");
+        return;
+      }
+
+      this->motion_current_check_pending_ = false;
+    }
+
     if (!this->current_above_threshold_()) {
       this->set_open_output_(false);
       this->set_state_(ValveState::OPEN);
@@ -228,12 +244,21 @@ void ValveController::process_motion_() {
     }
 
     if (now - this->motion_started_at_ >= this->movement_timeout_ms_) {
-      this->set_error_();
+      this->set_error_("opening current did not stop before the timeout expired");
     }
     return;
   }
 
   if (this->state_ == ValveState::CLOSING) {
+    if (this->motion_current_check_pending_) {
+      if (!this->current_above_threshold_()) {
+        this->set_error_("closing current was not detected within one loop");
+        return;
+      }
+
+      this->motion_current_check_pending_ = false;
+    }
+
     if (!this->current_above_threshold_()) {
       this->set_close_output_(false);
       this->set_state_(ValveState::CLOSED);
@@ -241,7 +266,7 @@ void ValveController::process_motion_() {
     }
 
     if (now - this->motion_started_at_ >= this->movement_timeout_ms_) {
-      this->set_error_();
+      this->set_error_("closing current did not stop before the timeout expired");
     }
   }
 }
