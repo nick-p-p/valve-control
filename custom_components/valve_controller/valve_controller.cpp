@@ -5,6 +5,8 @@
 
 namespace esphome::valve_controller {
 
+using namespace esphome::valve;
+
 static const char *const TAG = "valve_controller";
 
 void ValveButtonBase::dump_config() { LOG_BUTTON("", "Valve Button", this); }
@@ -15,6 +17,7 @@ void ValveCloseButton::press_action() { this->parent_->request_close(); }
 
 void ValveController::dump_config() {
   ESP_LOGCONFIG(TAG, "Valve Controller:");
+  LOG_VALVE("", "Valve Controller", this);
   ESP_LOGCONFIG(TAG, "  Open output: %s", this->open_output_ != nullptr ? "configured" : "missing");
   ESP_LOGCONFIG(TAG, "  Close output: %s", this->close_output_ != nullptr ? "configured" : "missing");
   if (this->current_sensor_ != nullptr) {
@@ -33,7 +36,8 @@ void ValveController::setup() {
   this->stage_started_at_ = millis();
   this->startup_open_current_ = false;
   this->startup_close_current_ = false;
-  this->state_ = ValveState::UNKNOWN;
+  this->state_ = ValveState::ERROR;
+  this->set_state_(ValveState::UNKNOWN);
   this->set_open_output_(true);
 }
 
@@ -70,6 +74,30 @@ void ValveController::set_state_(ValveState state) {
   }
 
   this->state_ = state;
+
+  switch (this->state_) {
+    case ValveState::OPEN:
+      this->position = VALVE_OPEN;
+      this->current_operation = VALVE_OPERATION_IDLE;
+      break;
+    case ValveState::CLOSED:
+      this->position = VALVE_CLOSED;
+      this->current_operation = VALVE_OPERATION_IDLE;
+      break;
+    case ValveState::OPENING:
+      this->current_operation = VALVE_OPERATION_OPENING;
+      break;
+    case ValveState::CLOSING:
+      this->current_operation = VALVE_OPERATION_CLOSING;
+      break;
+    case ValveState::UNKNOWN:
+    case ValveState::ERROR:
+      this->position = 0.5f;
+      this->current_operation = VALVE_OPERATION_IDLE;
+      break;
+  }
+
+  this->publish_state();
   this->publish_state_();
 }
 
@@ -288,6 +316,43 @@ const char *ValveController::state_name_(ValveState state) const {
   }
 
   return "error";
+}
+
+ValveTraits ValveController::get_traits() {
+  auto traits = ValveTraits();
+  traits.set_is_assumed_state(true);
+  traits.set_supports_stop(true);
+  traits.set_supports_toggle(true);
+  traits.set_supports_position(false);
+  return traits;
+}
+
+void ValveController::control(const ValveCall &call) {
+  if (call.get_stop()) {
+    this->all_outputs_off_();
+    this->current_operation = VALVE_OPERATION_IDLE;
+    this->publish_state();
+    return;
+  }
+
+  auto toggle = call.get_toggle();
+  if (toggle.has_value() && *toggle) {
+    if (this->is_fully_open()) {
+      this->request_close();
+    } else {
+      this->request_open();
+    }
+    return;
+  }
+
+  auto requested_position = call.get_position();
+  if (requested_position.has_value()) {
+    if (*requested_position >= 0.5f) {
+      this->request_open();
+    } else {
+      this->request_close();
+    }
+  }
 }
 
 }  // namespace esphome::valve_controller

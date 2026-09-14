@@ -6,6 +6,7 @@
 #include "esphome/components/output/binary_output.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
+#include "esphome/components/valve/valve.h"
 #include "esphome/core/component.h"
 
 namespace esphome::valve_controller {
@@ -40,7 +41,7 @@ class ValveCloseButton final : public ValveButtonBase {
 
 class ValveStateTextSensor final : public text_sensor::TextSensor, public Component {};
 
-class ValveController final : public Component {
+class ValveController final : public valve::Valve, public Component {
  public:
   void set_open_output(output::BinaryOutput *output) { this->open_output_ = output; }
   void set_close_output(output::BinaryOutput *output) { this->close_output_ = output; }
@@ -58,6 +59,9 @@ class ValveController final : public Component {
   void request_close();
 
  protected:
+  valve::ValveTraits get_traits() override;
+  void control(const valve::ValveCall &call) override;
+
   enum class ValveState : uint8_t {
     UNKNOWN,
     OPEN,
