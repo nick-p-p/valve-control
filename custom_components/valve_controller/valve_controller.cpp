@@ -8,6 +8,7 @@ namespace esphome::valve_controller {
 using namespace esphome::valve;
 
 static const char *const TAG = "valve_controller";
+static const char *const VALVE_CONTROLLER_VERSION = "0.1.0";
 
 void ValveController::dump_config() {
   ESP_LOGCONFIG(TAG, "Valve Controller:");
@@ -25,6 +26,7 @@ void ValveController::dump_config() {
 }
 
 void ValveController::setup() {
+  ESP_LOGI(TAG, "Starting Valve Controller v%s", VALVE_CONTROLLER_VERSION);
   this->all_outputs_off_();
   this->startup_stage_ = StartupStage::OPEN_TEST;
   this->stage_started_at_ = millis();
