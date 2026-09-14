@@ -2,18 +2,17 @@
 
 #include <cstdint>
 
+#include "esphome/components/i2c/i2c.h"
 #include "esphome/components/output/binary_output.h"
-#include "esphome/components/sensor/sensor.h"
 #include "esphome/components/valve/valve.h"
 #include "esphome/core/component.h"
 
 namespace esphome::valve_controller {
 
-class ValveController final : public valve::Valve, public Component {
+class ValveController final : public valve::Valve, public Component, public i2c::I2CDevice {
  public:
   void set_open_output(output::BinaryOutput *output) { this->open_output_ = output; }
   void set_close_output(output::BinaryOutput *output) { this->close_output_ = output; }
-  void set_current_sensor(sensor::Sensor *sensor) { this->current_sensor_ = sensor; }
   void set_current_threshold_amps(float threshold) { this->current_threshold_amps_ = threshold; }
   void set_movement_timeout_ms(uint32_t timeout_ms) { this->movement_timeout_ms_ = timeout_ms; }
   void set_running_current_check_interval_ms(uint32_t interval_ms) {
@@ -21,6 +20,10 @@ class ValveController final : public valve::Valve, public Component {
   }
   void set_idle_current_check_interval_ms(uint32_t interval_ms) { this->idle_current_check_interval_ms_ = interval_ms; }
   void set_minimum_running_time_ms(uint32_t min_time_ms) { this->minimum_running_time_ms_ = min_time_ms; }
+  void set_shunt_resistance_ohms(float shunt_resistance_ohms) { this->shunt_resistance_ohms_ = shunt_resistance_ohms; }
+  void set_max_expected_current_amps(float max_expected_current_amps) {
+    this->max_expected_current_amps_ = max_expected_current_amps;
+  }
 
   void setup() override;
   void loop() override;
@@ -55,7 +58,9 @@ class ValveController final : public valve::Valve, public Component {
   void all_outputs_off_();
   void set_open_output_(bool enabled);
   void set_close_output_(bool enabled);
-  bool current_above_threshold_() const;
+  bool setup_ina219_();
+  bool read_current_amps_(float *current_amps);
+  bool current_above_threshold_();
   bool current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force = false);
   void start_opening_();
   void start_closing_();
@@ -66,7 +71,6 @@ class ValveController final : public valve::Valve, public Component {
 
   output::BinaryOutput *open_output_{nullptr};
   output::BinaryOutput *close_output_{nullptr};
-  sensor::Sensor *current_sensor_{nullptr};
 
   ValveState state_{ValveState::UNKNOWN};
   StartupStage startup_stage_{StartupStage::OPEN_TEST};
@@ -76,8 +80,12 @@ class ValveController final : public valve::Valve, public Component {
   bool motion_current_check_pending_{false};
   bool has_cached_current_sample_{false};
   bool cached_current_above_threshold_{false};
+  bool ina219_configured_{false};
 
   float current_threshold_amps_{0.05f};
+  float shunt_resistance_ohms_{0.1f};
+  float max_expected_current_amps_{3.2f};
+  float ina219_current_lsb_amps_{0.0f};
   uint32_t movement_timeout_ms_{30000};
   uint32_t running_current_check_interval_ms_{20};
   uint32_t idle_current_check_interval_ms_{3000};

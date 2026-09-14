@@ -5,7 +5,6 @@ substitutions:
   close_pin: GPIO13
   open_button_pin: GPIO14
   close_button_pin: GPIO15
-  current_update_interval: 20ms
   current_threshold_amps: 0.05
   movement_timeout: 30s
 
@@ -35,13 +34,6 @@ i2c:
   scl: GPIO22
   scan: true
 
-sensor:
-  - platform: ina219
-    current:
-      id: valve_current
-      name: ${friendly_name} Current
-    update_interval: ${current_update_interval}
-
 output:
   - platform: gpio
     id: valve_open_output
@@ -56,7 +48,8 @@ valve_controller:
   name: ${friendly_name}
   open_output: valve_open_output
   close_output: valve_close_output
-  current_sensor: valve_current
+  shunt_resistance_ohms: 0.1
+  max_expected_current_amps: 3.2
   current_threshold: ${current_threshold_amps}
   movement_timeout: ${movement_timeout}
   running_current_check_interval: 20ms

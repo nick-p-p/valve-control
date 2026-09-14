@@ -1,5 +1,7 @@
 #include "valve_controller.h"
 
+#include <cmath>
+
 #include "esphome/core/hal.h"
 #include "esphome/core/log.h"
 
@@ -10,15 +12,20 @@ using namespace esphome::valve;
 static const char *const TAG = "valve_controller";
 static const char *const VALVE_CONTROLLER_VERSION = "0.1.0";
 
+static constexpr uint8_t INA219_REG_CONFIG = 0x00;
+static constexpr uint8_t INA219_REG_CURRENT = 0x04;
+static constexpr uint8_t INA219_REG_CALIBRATION = 0x05;
+static constexpr uint16_t INA219_CONFIG_DEFAULT = 0x399F;
+
 void ValveController::dump_config() {
   ESP_LOGCONFIG(TAG, "Valve Controller:");
   LOG_VALVE("", "Valve Controller", this);
   ESP_LOGCONFIG(TAG, "  Open output: %s", this->open_output_ != nullptr ? "configured" : "missing");
   ESP_LOGCONFIG(TAG, "  Close output: %s", this->close_output_ != nullptr ? "configured" : "missing");
-  if (this->current_sensor_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  Current sensor: %s", this->current_sensor_->get_name().c_str());
-  }
+  LOG_I2C_DEVICE(this);
   ESP_LOGCONFIG(TAG, "  Current threshold: %.3f A", this->current_threshold_amps_);
+  ESP_LOGCONFIG(TAG, "  INA219 shunt resistance: %.4f ohm", this->shunt_resistance_ohms_);
+  ESP_LOGCONFIG(TAG, "  INA219 max expected current: %.3f A", this->max_expected_current_amps_);
   ESP_LOGCONFIG(TAG, "  Movement timeout: %lu ms", this->movement_timeout_ms_);
   ESP_LOGCONFIG(TAG, "  Running current check interval: %lu ms", this->running_current_check_interval_ms_);
   ESP_LOGCONFIG(TAG, "  Idle current check interval: %lu ms", this->idle_current_check_interval_ms_);
@@ -27,6 +34,12 @@ void ValveController::dump_config() {
 
 void ValveController::setup() {
   ESP_LOGI(TAG, "Starting Valve Controller v%s", VALVE_CONTROLLER_VERSION);
+  if (!this->setup_ina219_()) {
+    this->status_set_error("ina219_init_failed");
+    this->set_error_("INA219 initialization failed");
+    return;
+  }
+
   this->all_outputs_off_();
   this->startup_stage_ = StartupStage::OPEN_TEST;
   this->stage_started_at_ = millis();
@@ -37,6 +50,53 @@ void ValveController::setup() {
   this->state_ = ValveState::ERROR;
   this->set_state_(ValveState::UNKNOWN);
   this->set_open_output_(true);
+}
+
+bool ValveController::setup_ina219_() {
+  if (this->shunt_resistance_ohms_ <= 0.0f || this->max_expected_current_amps_ <= 0.0f) {
+    ESP_LOGE(TAG, "Invalid INA219 calibration inputs: shunt=%.6f, max_current=%.6f", this->shunt_resistance_ohms_,
+             this->max_expected_current_amps_);
+    return false;
+  }
+
+  const float current_lsb = this->max_expected_current_amps_ / 32768.0f;
+  float calibration_f = 0.04096f / (current_lsb * this->shunt_resistance_ohms_);
+  uint16_t calibration = static_cast<uint16_t>(calibration_f);
+  if (calibration == 0) {
+    calibration = 1;
+  }
+
+  if (!this->write_byte_16(INA219_REG_CONFIG, INA219_CONFIG_DEFAULT)) {
+    ESP_LOGE(TAG, "Failed to write INA219 config register");
+    return false;
+  }
+
+  if (!this->write_byte_16(INA219_REG_CALIBRATION, calibration)) {
+    ESP_LOGE(TAG, "Failed to write INA219 calibration register");
+    return false;
+  }
+
+  this->ina219_current_lsb_amps_ = 0.04096f / (static_cast<float>(calibration) * this->shunt_resistance_ohms_);
+  this->ina219_configured_ = true;
+  ESP_LOGI(TAG, "INA219 ready at 0x%02X, current_lsb=%.9f A/bit", this->get_i2c_address(),
+           this->ina219_current_lsb_amps_);
+  return true;
+}
+
+bool ValveController::read_current_amps_(float *current_amps) {
+  if (!this->ina219_configured_) {
+    return false;
+  }
+
+  uint16_t raw = 0;
+  if (!this->read_byte_16(INA219_REG_CURRENT, &raw)) {
+    ESP_LOGW(TAG, "INA219 current register read failed");
+    return false;
+  }
+
+  const int16_t signed_raw = static_cast<int16_t>(raw);
+  *current_amps = static_cast<float>(signed_raw) * this->ina219_current_lsb_amps_;
+  return true;
 }
 
 void ValveController::loop() {
@@ -142,9 +202,12 @@ void ValveController::set_close_output_(bool enabled) {
   }
 }
 
-bool ValveController::current_above_threshold_() const {
-  return this->current_sensor_ != nullptr && this->current_sensor_->has_state() &&
-         this->current_sensor_->state >= this->current_threshold_amps_;
+bool ValveController::current_above_threshold_() {
+  float current_amps = 0.0f;
+  if (!this->read_current_amps_(&current_amps)) {
+    return false;
+  }
+  return std::fabs(current_amps) >= this->current_threshold_amps_;
 }
 
 bool ValveController::current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force) {
