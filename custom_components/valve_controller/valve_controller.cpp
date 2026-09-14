@@ -176,6 +176,7 @@ void ValveController::set_error_(const char *reason) {
   ESP_LOGE(TAG, "Valve state changed to error: %s", reason);
   this->all_outputs_off_();
   this->set_state_(ValveState::ERROR);
+  this->mark_failed();
 }
 
 void ValveController::complete_startup_() {
