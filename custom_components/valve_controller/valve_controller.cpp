@@ -19,8 +19,8 @@ void ValveController::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Current threshold: %.3f A", this->current_threshold_amps_);
   ESP_LOGCONFIG(TAG, "  Movement timeout: %u ms", this->movement_timeout_ms_);
-  ESP_LOGCONFIG(TAG, "  Running current check interval: %u ms", this->running_current_check_interval_ms_);
-  ESP_LOGCONFIG(TAG, "  Idle current check interval: %u ms", this->idle_current_check_interval_ms_);
+  ESP_LOGCONFIG(TAG, "  Running current check interval: %lu ms", this->running_current_check_interval_ms_);
+  ESP_LOGCONFIG(TAG, "  Idle current check interval: %lu ms", this->idle_current_check_interval_ms_);
 }
 
 void ValveController::setup() {
