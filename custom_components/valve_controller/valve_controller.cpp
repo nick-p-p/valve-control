@@ -52,7 +52,9 @@ void ValveController::loop() {
 }
 
 void ValveController::request_open() {
+  ESP_LOGI(TAG, "Received request: OPEN");
   if (this->state_ == ValveState::OPEN) {
+    ESP_LOGI(TAG, "Ignoring OPEN request: valve already open");
     return;
   }
 
@@ -61,7 +63,9 @@ void ValveController::request_open() {
 }
 
 void ValveController::request_close() {
+  ESP_LOGI(TAG, "Received request: CLOSE");
   if (this->state_ == ValveState::CLOSED) {
+    ESP_LOGI(TAG, "Ignoring CLOSE request: valve already closed");
     return;
   }
 
