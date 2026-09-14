@@ -56,8 +56,6 @@ valve_controller:
   current_sensor: valve_current
   current_threshold: ${current_threshold_amps}
   movement_timeout: ${movement_timeout}
-  state:
-    name: ${friendly_name} State
 
 binary_sensor:
   - platform: gpio

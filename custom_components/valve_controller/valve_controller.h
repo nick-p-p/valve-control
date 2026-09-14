@@ -4,20 +4,16 @@
 
 #include "esphome/components/output/binary_output.h"
 #include "esphome/components/sensor/sensor.h"
-#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/valve/valve.h"
 #include "esphome/core/component.h"
 
 namespace esphome::valve_controller {
-
-class ValveStateTextSensor final : public text_sensor::TextSensor, public Component {};
 
 class ValveController final : public valve::Valve, public Component {
  public:
   void set_open_output(output::BinaryOutput *output) { this->open_output_ = output; }
   void set_close_output(output::BinaryOutput *output) { this->close_output_ = output; }
   void set_current_sensor(sensor::Sensor *sensor) { this->current_sensor_ = sensor; }
-  void set_state_sensor(text_sensor::TextSensor *sensor) { this->state_sensor_ = sensor; }
   void set_current_threshold_amps(float threshold) { this->current_threshold_amps_ = threshold; }
   void set_movement_timeout_ms(uint32_t timeout_ms) { this->movement_timeout_ms_ = timeout_ms; }
 
@@ -51,7 +47,6 @@ class ValveController final : public valve::Valve, public Component {
   };
 
   void set_state_(ValveState state);
-  void publish_state_();
   void all_outputs_off_();
   void set_open_output_(bool enabled);
   void set_close_output_(bool enabled);
@@ -62,12 +57,10 @@ class ValveController final : public valve::Valve, public Component {
   void complete_startup_();
   void process_startup_();
   void process_motion_();
-  const char *state_name_(ValveState state) const;
 
   output::BinaryOutput *open_output_{nullptr};
   output::BinaryOutput *close_output_{nullptr};
   sensor::Sensor *current_sensor_{nullptr};
-  text_sensor::TextSensor *state_sensor_{nullptr};
 
   ValveState state_{ValveState::UNKNOWN};
   StartupStage startup_stage_{StartupStage::OPEN_TEST};

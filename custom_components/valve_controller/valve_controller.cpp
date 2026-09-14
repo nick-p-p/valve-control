@@ -17,9 +17,6 @@ void ValveController::dump_config() {
   if (this->current_sensor_ != nullptr) {
     ESP_LOGCONFIG(TAG, "  Current sensor: %s", this->current_sensor_->get_name().c_str());
   }
-  if (this->state_sensor_ != nullptr) {
-    ESP_LOGCONFIG(TAG, "  State sensor: %s", this->state_sensor_->get_name().c_str());
-  }
   ESP_LOGCONFIG(TAG, "  Current threshold: %.3f A", this->current_threshold_amps_);
   ESP_LOGCONFIG(TAG, "  Movement timeout: %u ms", this->movement_timeout_ms_);
 }
@@ -92,15 +89,6 @@ void ValveController::set_state_(ValveState state) {
   }
 
   this->publish_state();
-  this->publish_state_();
-}
-
-void ValveController::publish_state_() {
-  if (this->state_sensor_ == nullptr) {
-    return;
-  }
-
-  this->state_sensor_->publish_state(this->state_name_(this->state_));
 }
 
 void ValveController::all_outputs_off_() {
@@ -291,25 +279,6 @@ void ValveController::process_motion_() {
       this->set_error_("closing current did not stop before the timeout expired");
     }
   }
-}
-
-const char *ValveController::state_name_(ValveState state) const {
-  switch (state) {
-    case ValveState::UNKNOWN:
-      return "unknown";
-    case ValveState::OPEN:
-      return "open";
-    case ValveState::CLOSED:
-      return "closed";
-    case ValveState::OPENING:
-      return "opening";
-    case ValveState::CLOSING:
-      return "closing";
-    case ValveState::ERROR:
-      return "error";
-  }
-
-  return "error";
 }
 
 ValveTraits ValveController::get_traits() {
