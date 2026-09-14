@@ -1,9 +1,8 @@
 import esphome.codegen as cg
-from esphome.components import button, output, sensor, text_sensor, valve
+from esphome.components import output, sensor, text_sensor, valve
 import esphome.config_validation as cv
 from esphome.const import (
     CONF_ID,
-    ENTITY_CATEGORY_CONFIG,
     ENTITY_CATEGORY_DIAGNOSTIC,
 )
 from esphome.types import ConfigType
@@ -14,13 +13,9 @@ CONF_CURRENT_SENSOR = "current_sensor"
 CONF_CURRENT_THRESHOLD = "current_threshold"
 CONF_MOVEMENT_TIMEOUT = "movement_timeout"
 CONF_STATE = "state"
-CONF_OPEN_BUTTON = "open_button"
-CONF_CLOSE_BUTTON = "close_button"
 
 valve_ns = cg.esphome_ns.namespace("valve_controller")
 ValveController = valve_ns.class_("ValveController", valve.Valve, cg.Component)
-ValveOpenButton = valve_ns.class_("ValveOpenButton", button.Button)
-ValveCloseButton = valve_ns.class_("ValveCloseButton", button.Button)
 ValveStateTextSensor = valve_ns.class_("ValveStateTextSensor", text_sensor.TextSensor)
 
 CONFIG_SCHEMA = (
@@ -33,14 +28,6 @@ CONFIG_SCHEMA = (
             cv.Optional(CONF_STATE): text_sensor.text_sensor_schema(
                 ValveStateTextSensor,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
-            ),
-            cv.Optional(CONF_OPEN_BUTTON): button.button_schema(
-                ValveOpenButton,
-                entity_category=ENTITY_CATEGORY_CONFIG,
-            ),
-            cv.Optional(CONF_CLOSE_BUTTON): button.button_schema(
-                ValveCloseButton,
-                entity_category=ENTITY_CATEGORY_CONFIG,
             ),
             cv.Optional(CONF_CURRENT_THRESHOLD, default=0.05): cv.positive_float,
             cv.Optional(CONF_MOVEMENT_TIMEOUT, default="30s"): cv.positive_time_period_milliseconds,
@@ -69,8 +56,3 @@ async def to_code(config: ConfigType) -> None:
 
     cg.add(var.set_current_threshold_amps(config[CONF_CURRENT_THRESHOLD]))
     cg.add(var.set_movement_timeout_ms(config[CONF_MOVEMENT_TIMEOUT]))
-
-    if open_button_config := config.get(CONF_OPEN_BUTTON):
-        await button.new_button(open_button_config, var)
-    if close_button_config := config.get(CONF_CLOSE_BUTTON):
-        await button.new_button(close_button_config, var)

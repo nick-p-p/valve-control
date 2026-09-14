@@ -61,12 +61,6 @@ valve_controller:
   movement_timeout: ${movement_timeout}
   state:
     name: ${friendly_name} State
-  open_button:
-    id: open_valve_button
-    name: Open ${friendly_name}
-  close_button:
-    id: close_valve_button
-    name: Close ${friendly_name}
 
 binary_sensor:
   - platform: gpio
@@ -84,7 +78,7 @@ binary_sensor:
       - delayed_off: 20ms
     on_press:
       then:
-        - button.press: open_valve_button
+        - valve.open: garden_valve
 
   - platform: gpio
     id: close_valve_trigger
@@ -101,4 +95,4 @@ binary_sensor:
       - delayed_off: 20ms
     on_press:
       then:
-        - button.press: close_valve_button
+        - valve.close: garden_valve

@@ -2,7 +2,6 @@
 
 #include <cstdint>
 
-#include "esphome/components/button/button.h"
 #include "esphome/components/output/binary_output.h"
 #include "esphome/components/sensor/sensor.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -10,34 +9,6 @@
 #include "esphome/core/component.h"
 
 namespace esphome::valve_controller {
-
-class ValveController;
-
-class ValveButtonBase : public button::Button {
- public:
-  explicit ValveButtonBase(ValveController *parent) : parent_(parent) {}
-
- protected:
-  void dump_config() override;
-
-  ValveController *parent_;
-};
-
-class ValveOpenButton final : public ValveButtonBase {
- public:
-  using ValveButtonBase::ValveButtonBase;
-
- protected:
-  void press_action() override;
-};
-
-class ValveCloseButton final : public ValveButtonBase {
- public:
-  using ValveButtonBase::ValveButtonBase;
-
- protected:
-  void press_action() override;
-};
 
 class ValveStateTextSensor final : public text_sensor::TextSensor, public Component {};
 

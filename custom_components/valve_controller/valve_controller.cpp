@@ -9,12 +9,6 @@ using namespace esphome::valve;
 
 static const char *const TAG = "valve_controller";
 
-void ValveButtonBase::dump_config() { LOG_BUTTON("", "Valve Button", this); }
-
-void ValveOpenButton::press_action() { this->parent_->request_open(); }
-
-void ValveCloseButton::press_action() { this->parent_->request_close(); }
-
 void ValveController::dump_config() {
   ESP_LOGCONFIG(TAG, "Valve Controller:");
   LOG_VALVE("", "Valve Controller", this);
