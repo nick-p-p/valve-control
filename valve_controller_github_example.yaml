@@ -59,6 +59,8 @@ valve_controller:
   current_sensor: valve_current
   current_threshold: ${current_threshold_amps}
   movement_timeout: ${movement_timeout}
+  running_current_check_interval: 20ms
+  idle_current_check_interval: 3s
 
 binary_sensor:
   - platform: gpio

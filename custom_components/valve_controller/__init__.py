@@ -14,6 +14,8 @@ CONF_CLOSE_OUTPUT = "close_output"
 CONF_CURRENT_SENSOR = "current_sensor"
 CONF_CURRENT_THRESHOLD = "current_threshold"
 CONF_MOVEMENT_TIMEOUT = "movement_timeout"
+CONF_RUNNING_CURRENT_CHECK_INTERVAL = "running_current_check_interval"
+CONF_IDLE_CURRENT_CHECK_INTERVAL = "idle_current_check_interval"
 
 valve_ns = cg.esphome_ns.namespace("valve_controller")
 ValveController = valve_ns.class_("ValveController", valve.Valve, cg.Component)
@@ -27,6 +29,8 @@ CONFIG_SCHEMA = (
             cv.Required(CONF_CURRENT_SENSOR): cv.use_id(sensor.Sensor),
             cv.Optional(CONF_CURRENT_THRESHOLD, default=0.05): cv.positive_float,
             cv.Optional(CONF_MOVEMENT_TIMEOUT, default="30s"): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_RUNNING_CURRENT_CHECK_INTERVAL, default="20ms"): cv.positive_time_period_milliseconds,
+            cv.Optional(CONF_IDLE_CURRENT_CHECK_INTERVAL, default="3s"): cv.positive_time_period_milliseconds,
         }
     )
     .extend(cv.COMPONENT_SCHEMA)
@@ -48,3 +52,5 @@ async def to_code(config: ConfigType) -> None:
 
     cg.add(var.set_current_threshold_amps(config[CONF_CURRENT_THRESHOLD]))
     cg.add(var.set_movement_timeout_ms(config[CONF_MOVEMENT_TIMEOUT]))
+    cg.add(var.set_running_current_check_interval_ms(config[CONF_RUNNING_CURRENT_CHECK_INTERVAL]))
+    cg.add(var.set_idle_current_check_interval_ms(config[CONF_IDLE_CURRENT_CHECK_INTERVAL]))

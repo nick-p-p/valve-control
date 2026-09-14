@@ -16,6 +16,10 @@ class ValveController final : public valve::Valve, public Component {
   void set_current_sensor(sensor::Sensor *sensor) { this->current_sensor_ = sensor; }
   void set_current_threshold_amps(float threshold) { this->current_threshold_amps_ = threshold; }
   void set_movement_timeout_ms(uint32_t timeout_ms) { this->movement_timeout_ms_ = timeout_ms; }
+  void set_running_current_check_interval_ms(uint32_t interval_ms) {
+    this->running_current_check_interval_ms_ = interval_ms;
+  }
+  void set_idle_current_check_interval_ms(uint32_t interval_ms) { this->idle_current_check_interval_ms_ = interval_ms; }
 
   void setup() override;
   void loop() override;
@@ -51,6 +55,7 @@ class ValveController final : public valve::Valve, public Component {
   void set_open_output_(bool enabled);
   void set_close_output_(bool enabled);
   bool current_above_threshold_() const;
+  bool current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force = false);
   void start_opening_();
   void start_closing_();
   void set_error_(const char *reason);
@@ -68,9 +73,14 @@ class ValveController final : public valve::Valve, public Component {
   bool startup_open_current_{false};
   bool startup_close_current_{false};
   bool motion_current_check_pending_{false};
+  bool has_cached_current_sample_{false};
+  bool cached_current_above_threshold_{false};
 
   float current_threshold_amps_{0.05f};
   uint32_t movement_timeout_ms_{30000};
+  uint32_t running_current_check_interval_ms_{20};
+  uint32_t idle_current_check_interval_ms_{3000};
+  uint32_t last_current_sample_at_{0};
   uint32_t motion_started_at_{0};
 };
 

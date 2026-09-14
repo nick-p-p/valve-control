@@ -19,6 +19,8 @@ void ValveController::dump_config() {
   }
   ESP_LOGCONFIG(TAG, "  Current threshold: %.3f A", this->current_threshold_amps_);
   ESP_LOGCONFIG(TAG, "  Movement timeout: %u ms", this->movement_timeout_ms_);
+  ESP_LOGCONFIG(TAG, "  Running current check interval: %u ms", this->running_current_check_interval_ms_);
+  ESP_LOGCONFIG(TAG, "  Idle current check interval: %u ms", this->idle_current_check_interval_ms_);
 }
 
 void ValveController::setup() {
@@ -27,6 +29,8 @@ void ValveController::setup() {
   this->stage_started_at_ = millis();
   this->startup_open_current_ = false;
   this->startup_close_current_ = false;
+  this->has_cached_current_sample_ = false;
+  this->last_current_sample_at_ = 0;
   this->state_ = ValveState::ERROR;
   this->set_state_(ValveState::UNKNOWN);
   this->set_open_output_(true);
@@ -39,6 +43,11 @@ void ValveController::loop() {
   }
 
   this->process_motion_();
+
+  if (this->state_ != ValveState::OPENING && this->state_ != ValveState::CLOSING) {
+    const uint32_t now = millis();
+    (void) this->current_above_threshold_throttled_(now, this->idle_current_check_interval_ms_);
+  }
 }
 
 void ValveController::request_open() {
@@ -131,9 +140,24 @@ bool ValveController::current_above_threshold_() const {
          this->current_sensor_->state >= this->current_threshold_amps_;
 }
 
+bool ValveController::current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force) {
+  if (interval_ms == 0) {
+    interval_ms = 1;
+  }
+
+  if (force || !this->has_cached_current_sample_ || now - this->last_current_sample_at_ >= interval_ms) {
+    this->cached_current_above_threshold_ = this->current_above_threshold_();
+    this->last_current_sample_at_ = now;
+    this->has_cached_current_sample_ = true;
+  }
+
+  return this->cached_current_above_threshold_;
+}
+
 void ValveController::start_opening_() {
   this->motion_started_at_ = millis();
   this->motion_current_check_pending_ = true;
+  this->has_cached_current_sample_ = false;
   this->set_close_output_(false);
   this->set_open_output_(true);
   this->set_state_(ValveState::OPENING);
@@ -142,6 +166,7 @@ void ValveController::start_opening_() {
 void ValveController::start_closing_() {
   this->motion_started_at_ = millis();
   this->motion_current_check_pending_ = true;
+  this->has_cached_current_sample_ = false;
   this->set_open_output_(false);
   this->set_close_output_(true);
   this->set_state_(ValveState::CLOSING);
@@ -184,7 +209,8 @@ void ValveController::process_startup_() {
         return;
       }
 
-      this->startup_open_current_ = this->current_above_threshold_();
+        this->startup_open_current_ =
+          this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_, true);
       this->set_open_output_(false);
       this->set_close_output_(this->startup_open_current_);
       this->stage_started_at_ = now;
@@ -208,7 +234,8 @@ void ValveController::process_startup_() {
         return;
       }
 
-      this->startup_close_current_ = this->current_above_threshold_();
+      this->startup_close_current_ =
+          this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_, true);
       this->set_close_output_(false);
       if (this->startup_close_current_) {
         this->set_open_output_(true);
@@ -239,15 +266,19 @@ void ValveController::process_motion_() {
 
   if (this->state_ == ValveState::OPENING) {
     if (this->motion_current_check_pending_) {
-      if (!this->current_above_threshold_()) {
-        this->set_error_("opening current was not detected within one loop");
+      if (now - this->motion_started_at_ < this->running_current_check_interval_ms_) {
+        return;
+      }
+
+      if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_, true)) {
+        this->set_error_("opening current was not detected in the startup check window");
         return;
       }
 
       this->motion_current_check_pending_ = false;
     }
 
-    if (!this->current_above_threshold_()) {
+    if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_)) {
       this->set_open_output_(false);
       this->set_state_(ValveState::OPEN);
       return;
@@ -261,15 +292,19 @@ void ValveController::process_motion_() {
 
   if (this->state_ == ValveState::CLOSING) {
     if (this->motion_current_check_pending_) {
-      if (!this->current_above_threshold_()) {
-        this->set_error_("closing current was not detected within one loop");
+      if (now - this->motion_started_at_ < this->running_current_check_interval_ms_) {
+        return;
+      }
+
+      if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_, true)) {
+        this->set_error_("closing current was not detected in the startup check window");
         return;
       }
 
       this->motion_current_check_pending_ = false;
     }
 
-    if (!this->current_above_threshold_()) {
+    if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_)) {
       this->set_close_output_(false);
       this->set_state_(ValveState::CLOSED);
       return;
