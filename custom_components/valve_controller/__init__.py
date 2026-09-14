@@ -7,6 +7,7 @@ from esphome.const import (
 from esphome.types import ConfigType
 
 AUTO_LOAD = ["valve"]
+DEPENDENCIES = ["valve"]
 
 CONF_OPEN_OUTPUT = "open_output"
 CONF_CLOSE_OUTPUT = "close_output"
