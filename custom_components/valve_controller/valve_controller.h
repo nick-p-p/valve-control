@@ -20,6 +20,7 @@ class ValveController final : public valve::Valve, public Component {
     this->running_current_check_interval_ms_ = interval_ms;
   }
   void set_idle_current_check_interval_ms(uint32_t interval_ms) { this->idle_current_check_interval_ms_ = interval_ms; }
+  void set_minimum_running_time_ms(uint32_t min_time_ms) { this->minimum_running_time_ms_ = min_time_ms; }
 
   void setup() override;
   void loop() override;
@@ -80,6 +81,7 @@ class ValveController final : public valve::Valve, public Component {
   uint32_t movement_timeout_ms_{30000};
   uint32_t running_current_check_interval_ms_{20};
   uint32_t idle_current_check_interval_ms_{3000};
+  uint32_t minimum_running_time_ms_{300};
   uint32_t last_current_sample_at_{0};
   uint32_t motion_started_at_{0};
 };

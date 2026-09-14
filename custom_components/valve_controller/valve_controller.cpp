@@ -18,9 +18,10 @@ void ValveController::dump_config() {
     ESP_LOGCONFIG(TAG, "  Current sensor: %s", this->current_sensor_->get_name().c_str());
   }
   ESP_LOGCONFIG(TAG, "  Current threshold: %.3f A", this->current_threshold_amps_);
-  ESP_LOGCONFIG(TAG, "  Movement timeout: %u ms", this->movement_timeout_ms_);
+  ESP_LOGCONFIG(TAG, "  Movement timeout: %lu ms", this->movement_timeout_ms_);
   ESP_LOGCONFIG(TAG, "  Running current check interval: %lu ms", this->running_current_check_interval_ms_);
   ESP_LOGCONFIG(TAG, "  Idle current check interval: %lu ms", this->idle_current_check_interval_ms_);
+  ESP_LOGCONFIG(TAG, "  Minimum running time: %lu ms", this->minimum_running_time_ms_);
 }
 
 void ValveController::setup() {
@@ -176,7 +177,6 @@ void ValveController::set_error_(const char *reason) {
   ESP_LOGE(TAG, "Valve state changed to error: %s", reason);
   this->all_outputs_off_();
   this->set_state_(ValveState::ERROR);
-  this->mark_failed();
 }
 
 void ValveController::complete_startup_() {
@@ -264,10 +264,11 @@ void ValveController::process_startup_() {
 
 void ValveController::process_motion_() {
   const uint32_t now = millis();
+  const uint32_t elapsed = now - this->motion_started_at_;
 
   if (this->state_ == ValveState::OPENING) {
     if (this->motion_current_check_pending_) {
-      if (now - this->motion_started_at_ < this->running_current_check_interval_ms_) {
+      if (elapsed < this->running_current_check_interval_ms_) {
         return;
       }
 
@@ -280,12 +281,17 @@ void ValveController::process_motion_() {
     }
 
     if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_)) {
+      if (elapsed < this->minimum_running_time_ms_) {
+        this->set_error_("opening current dropped below threshold too early");
+        return;
+      }
+
       this->set_open_output_(false);
       this->set_state_(ValveState::OPEN);
       return;
     }
 
-    if (now - this->motion_started_at_ >= this->movement_timeout_ms_) {
+    if (elapsed >= this->movement_timeout_ms_) {
       this->set_error_("opening current did not stop before the timeout expired");
     }
     return;
@@ -293,7 +299,7 @@ void ValveController::process_motion_() {
 
   if (this->state_ == ValveState::CLOSING) {
     if (this->motion_current_check_pending_) {
-      if (now - this->motion_started_at_ < this->running_current_check_interval_ms_) {
+      if (elapsed < this->running_current_check_interval_ms_) {
         return;
       }
 
@@ -306,12 +312,17 @@ void ValveController::process_motion_() {
     }
 
     if (!this->current_above_threshold_throttled_(now, this->running_current_check_interval_ms_)) {
+      if (elapsed < this->minimum_running_time_ms_) {
+        this->set_error_("closing current dropped below threshold too early");
+        return;
+      }
+
       this->set_close_output_(false);
       this->set_state_(ValveState::CLOSED);
       return;
     }
 
-    if (now - this->motion_started_at_ >= this->movement_timeout_ms_) {
+    if (elapsed >= this->movement_timeout_ms_) {
       this->set_error_("closing current did not stop before the timeout expired");
     }
   }

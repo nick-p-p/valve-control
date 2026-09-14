@@ -61,6 +61,7 @@ valve_controller:
   movement_timeout: ${movement_timeout}
   running_current_check_interval: 20ms
   idle_current_check_interval: 3s
+  minimum_running_time: 300ms
 
 binary_sensor:
   - platform: gpio
