@@ -35,7 +35,6 @@ void ValveController::dump_config() {
 void ValveController::setup() {
   ESP_LOGI(TAG, "Starting Valve Controller v%s", VALVE_CONTROLLER_VERSION);
   if (!this->setup_ina219_()) {
-    this->status_set_error("ina219_init_failed");
     this->set_error_("INA219 initialization failed");
     return;
   }
