@@ -38,7 +38,7 @@ void ValveController::setup() {
   this->publish_status_text_("initializing");
   if (!this->setup_ina219_()) {
     this->set_error_("INA219 initialization failed");
-    this->mark_failed_();
+    this->mark_failed();
     return;
   }
 
@@ -263,7 +263,7 @@ void ValveController::set_error_(const char *reason) {
   this->set_state_(ValveState::ERROR);
   this->publish_status_text_(reason);
   this->status_set_error();
-  this->mark_failed(reason);
+  this->mark_failed();
 }
 
 const char *ValveController::state_name_(ValveState state) const {
