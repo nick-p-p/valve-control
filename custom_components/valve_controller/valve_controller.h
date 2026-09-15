@@ -4,10 +4,14 @@
 
 #include "esphome/components/i2c/i2c.h"
 #include "esphome/components/output/binary_output.h"
+#include "esphome/components/text_sensor/text_sensor.h"
 #include "esphome/components/valve/valve.h"
 #include "esphome/core/component.h"
 
 namespace esphome::valve_controller {
+
+class ValveVersionTextSensor final : public text_sensor::TextSensor {};
+class ValveStatusTextSensor final : public text_sensor::TextSensor {};
 
 class ValveController final : public valve::Valve, public Component, public i2c::I2CDevice {
  public:
@@ -24,6 +28,8 @@ class ValveController final : public valve::Valve, public Component, public i2c:
   void set_max_expected_current_amps(float max_expected_current_amps) {
     this->max_expected_current_amps_ = max_expected_current_amps;
   }
+  void set_version_text_sensor(text_sensor::TextSensor *sensor) { this->version_text_sensor_ = sensor; }
+  void set_status_text_sensor(text_sensor::TextSensor *sensor) { this->status_text_sensor_ = sensor; }
 
   void setup() override;
   void loop() override;
@@ -62,6 +68,9 @@ class ValveController final : public valve::Valve, public Component, public i2c:
   bool read_current_amps_(float *current_amps);
   bool current_above_threshold_();
   bool current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force = false);
+  void publish_version_text_();
+  void publish_status_text_(const char *status_text);
+  const char *state_name_(ValveState state) const;
   void start_opening_();
   void start_closing_();
   void set_error_(const char *reason);
@@ -71,6 +80,8 @@ class ValveController final : public valve::Valve, public Component, public i2c:
 
   output::BinaryOutput *open_output_{nullptr};
   output::BinaryOutput *close_output_{nullptr};
+  text_sensor::TextSensor *version_text_sensor_{nullptr};
+  text_sensor::TextSensor *status_text_sensor_{nullptr};
 
   ValveState state_{ValveState::UNKNOWN};
   StartupStage startup_stage_{StartupStage::OPEN_TEST};

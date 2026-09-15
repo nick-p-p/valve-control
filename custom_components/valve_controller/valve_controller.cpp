@@ -34,6 +34,8 @@ void ValveController::dump_config() {
 
 void ValveController::setup() {
   ESP_LOGI(TAG, "Starting Valve Controller v%s", VALVE_CONTROLLER_VERSION);
+  this->publish_version_text_();
+  this->publish_status_text_("initializing");
   if (!this->setup_ina219_()) {
     this->set_error_("INA219 initialization failed");
     return;
@@ -49,6 +51,18 @@ void ValveController::setup() {
   this->state_ = ValveState::ERROR;
   this->set_state_(ValveState::UNKNOWN);
   this->set_open_output_(true);
+}
+
+void ValveController::publish_version_text_() {
+  if (this->version_text_sensor_ != nullptr) {
+    this->version_text_sensor_->publish_state(VALVE_CONTROLLER_VERSION);
+  }
+}
+
+void ValveController::publish_status_text_(const char *status_text) {
+  if (this->status_text_sensor_ != nullptr) {
+    this->status_text_sensor_->publish_state(status_text);
+  }
 }
 
 bool ValveController::setup_ina219_() {
@@ -164,6 +178,7 @@ void ValveController::set_state_(ValveState state) {
   }
 
   this->publish_state();
+  this->publish_status_text_(this->state_name_(this->state_));
 }
 
 void ValveController::all_outputs_off_() {
@@ -245,7 +260,27 @@ void ValveController::set_error_(const char *reason) {
   ESP_LOGE(TAG, "Valve state changed to error: %s", reason);
   this->all_outputs_off_();
   this->set_state_(ValveState::ERROR);
+  this->publish_status_text_(reason);
   this->status_set_error();
+}
+
+const char *ValveController::state_name_(ValveState state) const {
+  switch (state) {
+    case ValveState::UNKNOWN:
+      return "unknown";
+    case ValveState::OPEN:
+      return "open";
+    case ValveState::CLOSED:
+      return "closed";
+    case ValveState::OPENING:
+      return "opening";
+    case ValveState::CLOSING:
+      return "closing";
+    case ValveState::ERROR:
+      return "error";
+  }
+
+  return "error";
 }
 
 void ValveController::complete_startup_() {

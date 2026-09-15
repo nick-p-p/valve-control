@@ -55,6 +55,10 @@ valve_controller:
   running_current_check_interval: 20ms
   idle_current_check_interval: 3s
   minimum_running_time: 300ms
+  version_text:
+    name: ${friendly_name} Version
+  status_text:
+    name: ${friendly_name} Status
 
 binary_sensor:
   - platform: gpio
