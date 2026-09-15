@@ -7,8 +7,8 @@ from esphome.const import (
 )
 from esphome.types import ConfigType
 
-AUTO_LOAD = ["valve", "i2c"]
-DEPENDENCIES = ["valve", "i2c"]
+AUTO_LOAD = ["valve", "i2c", "text_sensor"]
+DEPENDENCIES = ["valve", "i2c", "text_sensor"]
 
 CONF_OPEN_OUTPUT = "open_output"
 CONF_CLOSE_OUTPUT = "close_output"
