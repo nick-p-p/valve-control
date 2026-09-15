@@ -66,6 +66,15 @@ void ValveController::publish_status_text_(const char *status_text) {
   }
 }
 
+void ValveController::publish_health_text_() {
+  if (this->health_text_sensor_ == nullptr) {
+    return;
+  }
+
+  const bool is_error = this->state_ == ValveState::ERROR || this->state_ == ValveState::UNKNOWN;
+  this->health_text_sensor_->publish_state(is_error ? "Error" : "Ok");
+}
+
 bool ValveController::setup_ina219_() {
   if (this->shunt_resistance_ohms_ <= 0.0f || this->max_expected_current_amps_ <= 0.0f) {
     ESP_LOGE(TAG, "Invalid INA219 calibration inputs: shunt=%.6f, max_current=%.6f", this->shunt_resistance_ohms_,
@@ -180,6 +189,7 @@ void ValveController::set_state_(ValveState state) {
 
   this->publish_state();
   this->publish_status_text_(this->state_name_(this->state_));
+  this->publish_health_text_();
 }
 
 void ValveController::all_outputs_off_() {
@@ -262,8 +272,9 @@ void ValveController::set_error_(const char *reason) {
   this->all_outputs_off_();
   this->set_state_(ValveState::ERROR);
   this->publish_status_text_(reason);
+
   this->status_set_error();
-  this->mark_failed();
+  this->publish_state(NAN);
 }
 
 const char *ValveController::state_name_(ValveState state) const {

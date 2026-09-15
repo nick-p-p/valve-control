@@ -7,6 +7,9 @@ These valves draw far more current than an esp32 can handle so mosfets or relays
 It exposes:
 
 - a state text sensor with `open`, `closed`, `opening`, `closing`, `error`
+- optional diagnostic text sensors:
+  - `status_text` with the current controller status text
+  - `health_text` with `Error` when valve state is `unknown` or `error`, otherwise `Ok`
 - an `Open` button
 - a `Close` button
 
@@ -45,6 +48,10 @@ valve_controller:
   current_sensor: valve_current
   movement_timeout: 20s
   current_threshold: 0.05
+  status_text:
+    name: Garden Valve Status
+  health_text:
+    name: Garden Valve Health
   state:
     name: Garden Valve State
   open_button:

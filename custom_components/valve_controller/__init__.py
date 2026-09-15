@@ -21,11 +21,13 @@ CONF_SHUNT_RESISTANCE_OHMS = "shunt_resistance_ohms"
 CONF_MAX_EXPECTED_CURRENT_AMPS = "max_expected_current_amps"
 CONF_VERSION_TEXT = "version_text"
 CONF_STATUS_TEXT = "status_text"
+CONF_HEALTH_TEXT = "health_text"
 
 valve_ns = cg.esphome_ns.namespace("valve_controller")
 ValveController = valve_ns.class_("ValveController", valve.Valve, cg.Component, i2c.I2CDevice)
 ValveVersionTextSensor = valve_ns.class_("ValveVersionTextSensor", text_sensor.TextSensor)
 ValveStatusTextSensor = valve_ns.class_("ValveStatusTextSensor", text_sensor.TextSensor)
+ValveHealthTextSensor = valve_ns.class_("ValveHealthTextSensor", text_sensor.TextSensor)
 
 CONFIG_SCHEMA = (
     valve.valve_schema(ValveController)
@@ -46,6 +48,10 @@ CONFIG_SCHEMA = (
             ),
             cv.Optional(CONF_STATUS_TEXT): text_sensor.text_sensor_schema(
                 ValveStatusTextSensor,
+                entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
+            ),
+            cv.Optional(CONF_HEALTH_TEXT): text_sensor.text_sensor_schema(
+                ValveHealthTextSensor,
                 entity_category=ENTITY_CATEGORY_DIAGNOSTIC,
             ),
         }
@@ -81,3 +87,7 @@ async def to_code(config: ConfigType) -> None:
     if status_text_config := config.get(CONF_STATUS_TEXT):
         status_text = await text_sensor.new_text_sensor(status_text_config)
         cg.add(var.set_status_text_sensor(status_text))
+
+    if health_text_config := config.get(CONF_HEALTH_TEXT):
+        health_text = await text_sensor.new_text_sensor(health_text_config)
+        cg.add(var.set_health_text_sensor(health_text))

@@ -12,6 +12,7 @@ namespace esphome::valve_controller {
 
 class ValveVersionTextSensor final : public text_sensor::TextSensor {};
 class ValveStatusTextSensor final : public text_sensor::TextSensor {};
+class ValveHealthTextSensor final : public text_sensor::TextSensor {};
 
 class ValveController final : public valve::Valve, public Component, public i2c::I2CDevice {
  public:
@@ -30,6 +31,7 @@ class ValveController final : public valve::Valve, public Component, public i2c:
   }
   void set_version_text_sensor(text_sensor::TextSensor *sensor) { this->version_text_sensor_ = sensor; }
   void set_status_text_sensor(text_sensor::TextSensor *sensor) { this->status_text_sensor_ = sensor; }
+  void set_health_text_sensor(text_sensor::TextSensor *sensor) { this->health_text_sensor_ = sensor; }
 
   void setup() override;
   void loop() override;
@@ -70,6 +72,7 @@ class ValveController final : public valve::Valve, public Component, public i2c:
   bool current_above_threshold_throttled_(uint32_t now, uint32_t interval_ms, bool force = false);
   void publish_version_text_();
   void publish_status_text_(const char *status_text);
+  void publish_health_text_();
   const char *state_name_(ValveState state) const;
   void start_opening_();
   void start_closing_();
@@ -82,6 +85,7 @@ class ValveController final : public valve::Valve, public Component, public i2c:
   output::BinaryOutput *close_output_{nullptr};
   text_sensor::TextSensor *version_text_sensor_{nullptr};
   text_sensor::TextSensor *status_text_sensor_{nullptr};
+  text_sensor::TextSensor *health_text_sensor_{nullptr};
 
   ValveState state_{ValveState::UNKNOWN};
   StartupStage startup_stage_{StartupStage::OPEN_TEST};
