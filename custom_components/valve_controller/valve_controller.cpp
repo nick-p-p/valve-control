@@ -301,9 +301,9 @@ void ValveController::complete_startup_() {
 
   if (this->startup_open_current_ == this->startup_close_current_) {
     if (this->startup_open_current_) {
-      this->set_error_("startup position detection saw current in both tests");
+      this->set_error_("startup position detection saw current in both tests. Wiring error?");
     } else {
-      this->set_error_("startup position detection saw no current in either test");
+      this->set_error_("startup position detection saw no current in either test. Motor disconnected?");
     }
     return;
   }
