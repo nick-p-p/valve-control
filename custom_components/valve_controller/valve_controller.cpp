@@ -10,7 +10,7 @@ namespace esphome::valve_controller {
 using namespace esphome::valve;
 
 static const char *const TAG = "valve_controller";
-static const char *const VALVE_CONTROLLER_VERSION = "0.1.0";
+static const char *const VALVE_CONTROLLER_VERSION = "0.1.1";
 
 static constexpr uint8_t INA219_REG_CONFIG = 0x00;
 static constexpr uint8_t INA219_REG_CURRENT = 0x04;
